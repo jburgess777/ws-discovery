@@ -1,2 +1,4 @@
 *.exe
 gen/*
+gen2/*
+gen3/*

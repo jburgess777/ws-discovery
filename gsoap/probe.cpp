@@ -9,13 +9,18 @@
 **
 ** -------------------------------------------------------------------------*/
 
+#include "gen/soapH.h"
+#include "gen/soapStub.h"
+
 #include "gen/wsdd.nsmap"
 #include "wsddapi.h"
+//#include "devicemgmt.h"
 
 int main(int argc, char** argv)
 {
 	const char * endpoint = "";
-	const char * type = NULL;
+	//const char * type = NULL;
+	const char * type = "http://www.onvif.org/ver10/network/wsdl:NetworkVideoTransmitter";
 	const char * scope = NULL;
 	int c = 0;
 	std::string url("soap.udp://239.255.255.250:3702");
@@ -39,7 +44,7 @@ int main(int argc, char** argv)
 	{
 		url = argv[optind];
 	}
-	
+
       	int res = 0;
 	if (url.find("soap.udp:")==0)
 	{	
@@ -62,7 +67,7 @@ int main(int argc, char** argv)
 			  SOAP_WSDD_TO_TS,      // to a TS
 			  "soap.udp://239.255.255.250:3702",         // address of TS
 			  soap_wsa_rand_uuid(serv),                   // message ID
-			  NULL,                 // ReplyTo
+			  NULL, // ReplyTo
 			  type,
 			  scope,
 			  NULL);
@@ -85,7 +90,7 @@ int main(int argc, char** argv)
 		}
 				
 		// listen answers
-		soap_wsdd_listen(serv, -1000000);
+		soap_wsdd_listen(serv, 5);
 	}
 	else
 	{
