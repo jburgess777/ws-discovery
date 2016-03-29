@@ -1,4 +1,6 @@
-*.exe
-gen/*
-gen2/*
-gen3/*
+gen_*
+*~
+zmonvif-info12
+zmonvif-probe11
+zmonvif-probe12
+zmonvif-profiles12

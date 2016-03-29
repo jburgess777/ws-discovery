@@ -15,119 +15,90 @@
 #include "wsdd.nsmap"
 #include "wsddapi.h"
 
-int main(int argc, char** argv)
+struct my_state {
+  const char *probe_id;
+} my_state;
+
+int verbose;
+
+void usage(void)
 {
-	const char * endpoint = "";
-	//const char * type = NULL;
-	const char * type = "http://www.onvif.org/ver10/network/wsdl:NetworkVideoTransmitter";
+	  std::cout << "Usage: /usr/bin/zmonvif-probe [-v]\n"
+	    "    -v        - increase verbosity\n";
+}
+
+int main(int argc, char* argv[])
+{
+	const char * type = 
+	  "\"http://www.onvif.org/ver10/network/wsdl\":NetworkVideoTransmitter"
+	  " \"http://www.onvif.org/ver10/device/wsdl\":Device";
 	const char * scope = NULL;
-	int c = 0;
 	std::string url("soap.udp://239.255.255.250:3702");
-	while ((c = getopt (argc, argv, "r:t:s:")) != -1)
-	{
-		switch (c)
-		{
-			case 'r': endpoint = optarg; break;
-			case 't': type     = optarg; break;
-			case 's': scope    = optarg; break;
-			default:
-				std::cout << int(c) << std::endl;
-				std::cout << argv[0] << std::endl;
-				std::cout << "\t -r <endpoint>        : resolve endpoint" << std::endl;
-				std::cout << "\t -t <type> -s <scope> : probe for type/scope" << std::endl;
-				exit(0);
-			break;
-		}
-	}
-	if (optind<argc)
-	{
-		url = argv[optind];
+	
+
+	if ((argc == 2) && !strcmp(argv[1], "-v")) {
+	  verbose = 1;
+	} else if (argc != 1) {
+	  usage();
+	  exit(1);
 	}
 
       	int res = 0;
-	if (url.find("soap.udp:")==0)
-	{	
-		std::cout << "to multicast" << std::endl;
-		
-		// create soap instance
-		struct soap* serv = soap_new1(SOAP_IO_UDP); 
-		if (!soap_valid_socket(soap_bind(serv, NULL, 0, 1000)))
-		{
-			soap_print_fault(serv, stderr);
-			exit(1);
-		}	
 
-	
-		// call resolve or probe
-		if (strlen(endpoint) == 0)
-		{		
-			res = soap_wsdd_Probe(serv,
-			  SOAP_WSDD_ADHOC,      // mode
-			  SOAP_WSDD_TO_TS,      // to a TS
-			  "soap.udp://239.255.255.250:3702",         // address of TS
-			  soap_wsa_rand_uuid(serv),                   // message ID
-			  NULL, // ReplyTo
-			  type,
-			  scope,
-			  NULL);
-		}
-		else
-		{	
-			// send resolve request
-			res = soap_wsdd_Resolve(serv,
-			  SOAP_WSDD_ADHOC,      // mode
-			  SOAP_WSDD_TO_TS,      // to a TS
-			  "soap.udp://239.255.255.250:3702",         // address of TS
-			  soap_wsa_rand_uuid(serv),                   // message ID
-			  NULL,                 // ReplyTo
-			  endpoint);
-		}
-		
-		if (res != SOAP_OK)
-		{
-			soap_print_fault(serv, stderr);
-		}
-				
-		// listen answers
-		soap_wsdd_listen(serv, 5);
+	// create soap instance
+	struct soap* serv = soap_new1(SOAP_IO_UDP); 
+	if (!soap_valid_socket(soap_bind(serv, NULL, 0, 1000))) {
+	  soap_print_fault(serv, stderr);
+	  exit(1);
+	}	
+
+	const char *id = soap_wsa_rand_uuid(serv);
+	serv->user = (void*)&my_state;
+	my_state.probe_id = id;
+
+	// call probe
+	res = soap_wsdd_Probe(serv,
+			      SOAP_WSDD_ADHOC,      // mode
+			      SOAP_WSDD_TO_TS,      // to a TS
+			      "soap.udp://239.255.255.250:3702",         // address of TS
+			      id,                   // message ID
+			      NULL, // ReplyTo
+			      type,
+			      scope,
+			      NULL);
+
+	if (res != SOAP_OK) {
+	  std::cout << "Got bad return " << res << "\n";
+	  soap_print_fault(serv, stderr);
+	  exit(1);
 	}
-	else
-	{
-		std::cout << "to proxy" << std::endl;
-		
-		struct soap* serv = soap_new(); 
-		if (strlen(endpoint) == 0)
-		{		
-			res = soap_wsdd_Probe(serv,
-			  SOAP_WSDD_MANAGED,      // mode
-			  SOAP_WSDD_TO_DP,      // to a Proxy
-			  url.c_str(),         // address of Proxy
-			  soap_wsa_rand_uuid(serv),                   // message ID
-			  NULL,                 // ReplyTo
-			  type,
-			  scope,
-			  NULL);
-		}
-		else
-		{	
-			// send resolve request
-			res = soap_wsdd_Resolve(serv,
-			  SOAP_WSDD_MANAGED,      // mode
-			  SOAP_WSDD_TO_DP,      // to a Proxy
-			  url.c_str(),         // address of Proxy
-			  soap_wsa_rand_uuid(serv),                   // message ID
-			  NULL,                 // ReplyTo
-			  endpoint);
-		}
-		
-		if (res != SOAP_OK)
-		{
-			soap_print_fault(serv, stderr);
-		}
+
+	time_t start = time(NULL);
+	while (1) {
+	  // listen for answers
+	  res = soap_wsdd_listen(serv, 1);
+	  if (verbose) {
+	    if (res != SOAP_OK) {
+	      std::cout << "Got bad return " << res << "\n";
+	      soap_print_fault(serv, stderr);
+	    } else {
+	      // soap_wsdd_listen ignores faults returned by clients, check again
+	      res = soap_recv_fault(serv, 1);
+	      if (res != SOAP_OK) {
+		soap_print_fault(serv, stderr);
+		printf("%s\n", serv->buf);
+	      }
+	    }
+	  }
+	  time_t now = time(NULL);
+	  if (now - start > 2)
+	    break;
 	}
-	
+
 	return 0;
 }
+
+
 
 template <class T> 
 void printMatch(const T & match)
@@ -160,13 +131,27 @@ void printMatch(const T & match)
 	std::cout << "-------------------------------------------------------------------" << std::endl;
 }
 
+
+
 void wsdd_event_ProbeMatches(struct soap *soap, unsigned int InstanceId, const char *SequenceId, unsigned int MessageNumber, const char *MessageID, const char *RelatesTo, struct wsdd__ProbeMatchesType *matches)
 {
-	printf("wsdd_event_ProbeMatches tid:%s RelatesTo:%s nbMatch:%d\n", MessageID, RelatesTo, matches->__sizeProbeMatch);
+        if (verbose)
+	  printf("wsdd_event_ProbeMatches tid:%s RelatesTo:%s nbMatch:%d\n", MessageID, RelatesTo, matches->__sizeProbeMatch);
         for (int i=0; i < matches->__sizeProbeMatch; ++i)
         {
                 wsdd__ProbeMatchType& elt = matches->ProbeMatch[i];
-		printMatch(elt);
+		if (verbose)
+		  printMatch(elt);
+		
+		// http://192.168.1.153:8080/onvif/devices, 1.1, (Profile='Streaming', model='C6F0SeZ0N0P0L0', name='IPCAM', location/country='china')
+		if (elt.XAddrs) {
+		  std::cout << elt.XAddrs << ", " << PROBE_VERSION << ", (";
+		  if (elt.Scopes && elt.Scopes->__item) {
+		    // TODO: convert scopes like zmonvif-probe.pl
+		    // if($scope =~ m|onvif://www\.onvif\.org/(.+)/(.*)|)
+		  }
+		  std::cout << ")\n";
+		}
         }
 }
 

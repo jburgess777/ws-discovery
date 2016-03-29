@@ -2,12 +2,27 @@
 #include "gen2/soapStub.h"
 #include "gen2/DeviceBinding.nsmap"
 
-void getInfo(struct soap* serv, const char *url, const char *user, const char *password)
+#include "wsseapi.h"
+
+int verbose;
+
+
+void addSecurity(struct soap *soap, const char *user, const char *pass)
+{
+  if (user) {
+    soap_wsse_add_Timestamp(soap, "Time", 600);
+    soap_wsse_add_UsernameTokenDigest(soap, "User",user , pass);
+  }
+}
+
+
+void getInfo(struct soap* serv, const char *url, const char *user, const char *pass)
 {
   int res;
   _tds__GetDeviceInformation info;
   _tds__GetDeviceInformationResponse response;
 
+  addSecurity(serv, user, pass);
   res = soap_call___tds__GetDeviceInformation(
 					      serv,
 					      url,
@@ -50,7 +65,7 @@ void displayMedia(tt__MediaCapabilities *m)
 
 }
 
-void getCaps(struct soap* serv, const char *url, const char *user, const char *password)
+void getCaps(struct soap* serv, const char *url, const char *user, const char *pass)
 {
   int res;
   _tds__GetCapabilities caps;
@@ -61,6 +76,7 @@ void getCaps(struct soap* serv, const char *url, const char *user, const char *p
   temp_category = tt__CapabilityCategory__Media;   
   caps.Category = &temp_category;
 
+  addSecurity(serv, user, pass);
   res = soap_call___tds__GetCapabilities(
 					 serv,
 					 url,
@@ -96,21 +112,42 @@ void getCaps(struct soap* serv, const char *url, const char *user, const char *p
   }
 }
 
+void usage(char **argv)
+{
+    fprintf(stderr, "%s <URL> username password\n", argv[0]);
+    exit(1);
+}
+
 int main(int argc, char *argv[])
 {
-  if (argc != 4) {
-    fprintf(stderr, "%s <URL> username password\n", argv[0]);
-    return 1;
+  const char *url = NULL;
+  const char *user = NULL;
+  const char *pass = NULL;
+
+  if (argc < 2)
+    usage(argv);
+
+  int arg = 1;
+
+  if (!strcmp(argv[arg], "-v")) {
+    verbose = 1;
+    arg++;
   }
 
-  const char *url = argv[1];
-  const char *user = argv[2];
-  const char *password = argv[3];
+  if (arg < argc)
+    url = argv[arg++];
+  else
+    usage(argv);
 
-  // create soap instance
-  struct soap* serv = soap_new(); 
-  getInfo(serv, url, user, password);
-  getCaps(serv, url, user, password);
+  if (arg < argc)
+    user = argv[arg++];
+
+  if (arg < argc)
+    pass = argv[arg++];
+
+  struct soap* soap = soap_new();
+  getInfo(soap, url, user, pass);
+  getCaps(soap, url, user, pass);
 
   return 0;
 }

@@ -2,61 +2,85 @@ GSOAP_PREFIX=/usr
 GSOAP_BASE=$(GSOAP_PREFIX)/share/gsoap
 GSOAP_IMPORT=$(GSOAP_BASE)/import
 GSOAP_PLUGINS=$(GSOAP_BASE)/plugin
-GSOAP_CFLAGS= -I gen -I $(GSOAP_PREFIX)/include -I $(GSOAP_PLUGINS)
-GSOAP_LDFLAGS= -lgsoap++ -L $(GSOAP_PREFIX)/lib/
+GSOAP_CFLAGS=-I$(GSOAP_PREFIX)/include -I$(GSOAP_PLUGINS)
+GSOAP_LDFLAGS=-lgsoap++ -L $(GSOAP_PREFIX)/lib/
 
-all: gen/soapC.cpp probe.exe server.exe proxy.exe info.exe media.exe
+WSSE_SRC=$(GSOAP_PLUGINS)/wsseapi.c $(GSOAP_PLUGINS)/smdevp.c $(GSOAP_PLUGINS)/mecevp.c $(GSOAP_PLUGINS)/wsaapi.c
 
-gen/soapClient.cpp gen/soapC.cpp gen/soapH.h:
-	mkdir -p gen
-	$(GSOAP_PREFIX)/bin/soapcpp2 -Cx $(GSOAP_IMPORT)/wsdd10.h -I $(GSOAP_IMPORT) -d gen
-
-probe.exe:   $(GSOAP_PLUGINS)/wsddapi.c $(GSOAP_PLUGINS)/wsaapi.c gen/soapClient.cpp gen/soapC.cpp probe.cpp 
-	c++ -g -o $@ $^ $(GSOAP_LDFLAGS) $(GSOAP_CFLAGS) 
-
-server.exe:   $(GSOAP_PLUGINS)/wsddapi.c $(GSOAP_PLUGINS)/wsaapi.c gen/soapClient.cpp gen/soapC.cpp server.cpp
-	c++ -g -o $@ $^ $(GSOAP_LDFLAGS) $(GSOAP_CFLAGS) 
-
-proxy.exe:   $(GSOAP_PLUGINS)/wsddapi.c $(GSOAP_PLUGINS)/wsaapi.c gen/soapClient.cpp gen/soapC.cpp proxy.cpp
-	c++ -g -o $@ $^ $(GSOAP_LDFLAGS) $(GSOAP_CFLAGS) 
-
-
-gen2/devicemgmt.h: devicemgmt.wsdl onvif.xsd b-2.xsd bf-2.xsd t-1.xsd
-	mkdir -p gen2
-	wsdl2h -d -Ntev -z6 -s -o $@ b-2.xsd bf-2.xsd t-1.xsd onvif.xsd devicemgmt.wsdl 
-
-gen2/soapClient.cpp gen2/soapC.cpp gen2/soapH.h: gen2/devicemgmt.h
-	mkdir -p gen2
-	$(GSOAP_PREFIX)/bin/soapcpp2 -Cx gen2/devicemgmt.h -I$(GSOAP_IMPORT) -I$(GSOAP_BASE) -d gen2
-
-gen2/duration.o: $(GSOAP_BASE)/custom/duration.c 
-	c++ -c -g -o $@ $^ -Igen2 
-
-gen2/wsseapi.o: $(GSOAP_PLUGINS)/wsseapi.c
-	c++ -c -g -o $@ $^ -Igen2
-
-CXXFLAGS:= -Igen2
-
-info.exe: gen2/soapClient.o gen2/soapC.o gen2/duration.o info.cpp
-	c++ -g -o $@ $^ $(GSOAP_LDFLAGS) -I$(GSOAP_BASE) -I gen2
+all: zmonvif-probe12 zmonvif-probe11 zmonvif-profiles12 zmonvif-info12
 
 
 
-gen3/media.h: media.wsdl onvif.xsd b-2.xsd t-1.xsd bf-2.xsd 
-	mkdir -p gen3
-	wsdl2h -o$@ -s media.wsdl onvif.xsd b-2.xsd t-1.xsd bf-2.xsd 
+gen_probe11/.build:
+	mkdir -p gen_probe11
+	$(GSOAP_PREFIX)/bin/soapcpp2 -1 -Cx $(GSOAP_IMPORT)/wsdd10.h -I $(GSOAP_IMPORT) -d gen_probe11
+	touch $@
 
-gen3/soapClient.cpp gen3/soapC.cpp gen3/soapH.h: gen3/media.h
-	mkdir -p gen3
-	$(GSOAP_PREFIX)/bin/soapcpp2 -Cx gen3/media.h -I$(GSOAP_IMPORT) -I$(GSOAP_BASE) -d gen3
+gen_probe11/soapClient.cpp gen_probe11/soapC.cpp gen_probe11/soapH.h: gen_probe11/.build
 
-gen3/duration.o: $(GSOAP_BASE)/custom/duration.c 
-	c++ -c -g -o $@ $^ -I gen3 
+zmonvif-probe11: $(GSOAP_PLUGINS)/wsddapi.c $(GSOAP_PLUGINS)/wsaapi.c gen_probe11/soapClient.cpp gen_probe11/soapC.cpp zmonvif-probe.cpp
+	c++ -g -o $@ $^ -Igen_probe11 $(GSOAP_LDFLAGS) $(GSOAP_CFLAGS) -DPROBE_VERSION="1.1"
 
-media.exe: gen3/soapClient.o gen3/soapC.o gen2/duration.o media.cpp
-	c++ -g -o $@ $^ $(GSOAP_LDFLAGS) -I gen3
+
+
+
+gen_probe12/.build:
+	mkdir -p gen_probe12
+	$(GSOAP_PREFIX)/bin/soapcpp2 -2 -Cx $(GSOAP_IMPORT)/wsdd10.h -I $(GSOAP_IMPORT) -d gen_probe12
+	touch $@
+
+gen_probe12/soapClient.cpp gen_probe12/soapC.cpp gen_probe12/soapH.h: gen_probe12/.build
+
+zmonvif-probe12: $(GSOAP_PLUGINS)/wsddapi.c $(GSOAP_PLUGINS)/wsaapi.c gen_probe12/soapClient.cpp gen_probe12/soapC.cpp zmonvif-probe.cpp
+	c++ -g -o $@ $^ -Igen_probe12 $(GSOAP_LDFLAGS) $(GSOAP_CFLAGS) -DPROBE_VERSION="1.2"
+
+
+
+
+gen_info12/devicemgmt.h: devicemgmt.wsdl onvif.xsd b-2.xsd bf-2.xsd t-1.xsd
+	mkdir -p gen_info12
+	wsdl2h -d -z6 -s -o $@ $^
+
+gen_info12/.build: gen_info12/devicemgmt.h
+	mkdir -p gen_info12
+	$(GSOAP_PREFIX)/bin/soapcpp2 -Cx gen_info12/devicemgmt.h -I$(GSOAP_IMPORT) -I$(GSOAP_BASE) -d gen_info12
+	touch $@
+
+gen_info12/soapClient.cpp gen_info12/soapC.cpp gen_info12/soapH.h: gen_info12/.build
+
+
+gen_info12/duration.o: $(GSOAP_BASE)/custom/duration.c gen_info12/soapH.h
+	c++ -c -g -o $@ $< -Igen_info12
+
+zmonvif-info12: gen_info12/soapClient.o gen_info12/soapC.o gen_info12/duration.o $(WSSE_SRC) info.cpp
+	c++ -g -o $@ $^ $(GSOAP_LDFLAGS) -I$(GSOAP_PLUGINS) -I$(GSOAP_BASE) -Igen_info12 -DWITH_OPENSSL -fpermissive  -lgsoapssl++ -lssl -lcrypto -lz
+
+
+
+
+gen_profiles12/media.h: media.wsdl onvif.xsd b-2.xsd t-1.xsd bf-2.xsd 
+	mkdir -p gen_profiles12
+	wsdl2h -o$@ -s $^
+
+gen_profiles12/.build: gen_profiles12/media.h
+	mkdir -p gen_profiles12
+	$(GSOAP_PREFIX)/bin/soapcpp2 -Cx gen_profiles12/media.h -I$(GSOAP_IMPORT) -I$(GSOAP_BASE) -d gen_profiles12
+	touch $@
+
+gen_profiles12/soapClient.cpp gen_profiles12/soapC.cpp gen_profiles12/soapH.h: gen_profiles12/.build
+
+gen_profiles12/duration.o: $(GSOAP_BASE)/custom/duration.c gen_profiles12/soapH.h
+	c++ -c -g -o $@ $< -Igen_profiles12 
+
+zmonvif-profiles12: gen_profiles12/soapClient.o gen_profiles12/soapC.o gen_info12/duration.o $(WSSE_SRC) media.cpp
+	c++ -g -o $@ $^ $(GSOAP_LDFLAGS) -I$(GSOAP_PLUGINS) -Igen_profiles12 -DWITH_OPENSSL -fpermissive  -lgsoapssl++ -lssl -lcrypto -lz
+
+
+
 
 clean:
-	rm -rf *.exe gen gen2 gen3 *.o
+	rm -fR *.o
+	rm -fR gen_probe11 gen_probe12 gen_info12 gen_profiles12 
+	rm -fR zmonvif-probe11 zmonvif-probe12 zmonvif-info12 zmonvif-profiles12
 
 
