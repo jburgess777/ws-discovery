@@ -19,7 +19,7 @@ all: $(PROG)
 install: $(PROG)
 	install -d $(PREFIX)/bin
 	install -s $(PROG) $(PREFIX)/bin
-	install -s zmonvif-probe.pl $(PREFIX)/bin
+	install zmonvif-probe.pl $(PREFIX)/bin
 
 
 gen_probe11/.build:
