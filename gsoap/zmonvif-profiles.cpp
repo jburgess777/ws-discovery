@@ -37,7 +37,7 @@ void getProfileStream(struct soap* serv, const char *url, char *token, const cha
   req.ProfileToken = token;
 
   addSecurity(serv, user, pass);
-  res = soap_call___trt__GetStreamUri(serv, url, NULL, &req, response);
+  res = soap_call___trt__GetStreamUri(serv, url, NULL, &req, &response);
   if (res != SOAP_OK) {
     soap_print_fault(serv, stderr);
     return;
@@ -89,7 +89,7 @@ void getMedia(struct soap* serv, const char *url, const char *user, const char *
   _trt__GetProfilesResponse response;
 
   addSecurity(serv, user, pass);
-  res = soap_call___trt__GetProfiles(serv, url, NULL, &req, response);
+  res = soap_call___trt__GetProfiles(serv, url, NULL, &req, &response);
   if (res != SOAP_OK) {
     soap_print_fault(serv, stderr);
     return;

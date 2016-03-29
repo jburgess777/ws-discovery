@@ -11,6 +11,9 @@ PROG:=zmonvif-probe12 zmonvif-probe11 zmonvif-profiles12 zmonvif-info12
 
 PREFIX?=/usr/local
 
+# Disable warnings of variable length arrays in generated code
+CXXFLAGS+= -Wno-vla
+
 all: $(PROG)
 
 install: $(PROG)
@@ -68,7 +71,7 @@ zmonvif-info12: gen_info12/soapClient.o gen_info12/soapC.o gen_info12/duration.o
 
 gen_profiles12/media.h: media.wsdl onvif.xsd b-2.xsd t-1.xsd bf-2.xsd 
 	mkdir -p gen_profiles12
-	wsdl2h -o$@ -s $^
+	wsdl2h  -z6 -o$@ -s $^
 
 gen_profiles12/.build: gen_profiles12/media.h
 	mkdir -p gen_profiles12
