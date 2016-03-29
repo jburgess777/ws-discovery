@@ -7,8 +7,16 @@ GSOAP_LDFLAGS=-lgsoap++ -L $(GSOAP_PREFIX)/lib/
 
 WSSE_SRC=$(GSOAP_PLUGINS)/wsseapi.c $(GSOAP_PLUGINS)/smdevp.c $(GSOAP_PLUGINS)/mecevp.c $(GSOAP_PLUGINS)/wsaapi.c
 
-all: zmonvif-probe12 zmonvif-probe11 zmonvif-profiles12 zmonvif-info12
+PROG:=zmonvif-probe12 zmonvif-probe11 zmonvif-profiles12 zmonvif-info12
 
+PREFIX?=/usr/local
+
+all: $(PROG)
+
+install: $(PROG)
+	install -d $(PREFIX)/bin
+	install -s $(PROG) $(PREFIX)/bin
+	install -s zmonvif-probe.pl $(PREFIX)/bin
 
 
 gen_probe11/.build:
@@ -79,8 +87,6 @@ zmonvif-profiles12: gen_profiles12/soapClient.o gen_profiles12/soapC.o gen_info1
 
 
 clean:
-	rm -fR *.o
+	rm -fR *.o $(PROG)
 	rm -fR gen_probe11 gen_probe12 gen_info12 gen_profiles12 
-	rm -fR zmonvif-probe11 zmonvif-probe12 zmonvif-info12 zmonvif-profiles12
-
 
