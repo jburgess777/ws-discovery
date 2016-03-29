@@ -1,6 +1,6 @@
-#include "gen3/soapH.h"
-#include "gen3/soapStub.h"
-#include "gen3/MediaBinding.nsmap"
+#include "soapH.h"
+#include "soapStub.h"
+#include "MediaBinding.nsmap"
 
 #include "wsseapi.h"
 

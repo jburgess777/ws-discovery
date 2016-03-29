@@ -1,6 +1,6 @@
-#include "gen2/soapH.h"
-#include "gen2/soapStub.h"
-#include "gen2/DeviceBinding.nsmap"
+#include "soapH.h"
+#include "soapStub.h"
+#include "DeviceBinding.nsmap"
 
 #include "wsseapi.h"
 

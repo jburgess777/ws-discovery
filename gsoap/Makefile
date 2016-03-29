@@ -52,7 +52,7 @@ gen_info12/soapClient.cpp gen_info12/soapC.cpp gen_info12/soapH.h: gen_info12/.b
 gen_info12/duration.o: $(GSOAP_BASE)/custom/duration.c gen_info12/soapH.h
 	c++ -c -g -o $@ $< -Igen_info12
 
-zmonvif-info12: gen_info12/soapClient.o gen_info12/soapC.o gen_info12/duration.o $(WSSE_SRC) info.cpp
+zmonvif-info12: gen_info12/soapClient.o gen_info12/soapC.o gen_info12/duration.o $(WSSE_SRC) zmonvif-info.cpp
 	c++ -g -o $@ $^ $(GSOAP_LDFLAGS) -I$(GSOAP_PLUGINS) -I$(GSOAP_BASE) -Igen_info12 -DWITH_OPENSSL -fpermissive  -lgsoapssl++ -lssl -lcrypto -lz
 
 
@@ -72,7 +72,7 @@ gen_profiles12/soapClient.cpp gen_profiles12/soapC.cpp gen_profiles12/soapH.h: g
 gen_profiles12/duration.o: $(GSOAP_BASE)/custom/duration.c gen_profiles12/soapH.h
 	c++ -c -g -o $@ $< -Igen_profiles12 
 
-zmonvif-profiles12: gen_profiles12/soapClient.o gen_profiles12/soapC.o gen_info12/duration.o $(WSSE_SRC) media.cpp
+zmonvif-profiles12: gen_profiles12/soapClient.o gen_profiles12/soapC.o gen_info12/duration.o $(WSSE_SRC) zmonvif-profiles.cpp
 	c++ -g -o $@ $^ $(GSOAP_LDFLAGS) -I$(GSOAP_PLUGINS) -Igen_profiles12 -DWITH_OPENSSL -fpermissive  -lgsoapssl++ -lssl -lcrypto -lz
 
 
